@@ -9,6 +9,12 @@ export class Team {
   @Column({ nullable: true })
   name?: string;
 
+  @Column()
+  leaderId: number; // 방장 ID
+
+  @Column({ default: 'waiting' })
+  status: 'waiting' | 'playing' | 'finished'; 
+
   @OneToMany(() => User, (user) => user.team)
   users: User[];
 }

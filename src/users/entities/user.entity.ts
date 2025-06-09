@@ -12,7 +12,7 @@ export class User {
   @Column()
   password: string;
 
-  @ManyToOne(() => Team, (team) => team.users, { nullable: true, onDelete: 'SET NULL' })    // 다대일 관계 
+  @ManyToOne(() => Team, (team) => team.users, { nullable: true})    // 다대일 관계 
   @JoinColumn({ name: 'teamId' })
   team?: Team;
 }
