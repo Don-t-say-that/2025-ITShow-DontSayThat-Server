@@ -5,6 +5,8 @@ import { User } from '../users/entities/user.entity';
 import { Team } from '../teams/entities/team.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
+import { BadRequestException } from '@nestjs/common';
+
 
 @Injectable()
 export class UsersService {
@@ -19,6 +21,12 @@ export class UsersService {
   async create(createUserDto: CreateUserDto): Promise<User> {
     const { name, password } = createUserDto;
     
+    const existingUser = await this.userRepository.findOne({ where: { name } });
+
+    if (existingUser) {
+      throw new BadRequestException('중복된 사용자입니다.');
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     
     const user = this.userRepository.create({
