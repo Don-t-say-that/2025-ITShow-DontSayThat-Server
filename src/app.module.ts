@@ -3,8 +3,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { TeamsModule } from './teams/teams.module';
+import { WaitingRoomGateway } from './gateways/waiting-room.gateway';
 
 @Module({
+  providers: [WaitingRoomGateway],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
