@@ -28,15 +28,15 @@ export class TeamsService {
   async createTeam(name: string, leaderId: number): Promise<Team> {
     const leader = await this.userRepository.findOne({ where: { id: leaderId } });
     if (!leader) {
-      throw new NotFoundException('해당 유저가 없습니다.');
+        throw new NotFoundException('해당 유저가 없습니다.');
     }
 
     const existing = await this.teamRepository.findOne({ where: { name } });
-
     if (existing) {
-    throw new BadRequestException('이미 존재하는 게임방 이름입니다.');}
+        throw new BadRequestException('이미 존재하는 게임방 이름입니다.');
+    }
 
-    const newTeam = this.teamRepository.create({ name });
+    const newTeam = this.teamRepository.create({ name, leader });
     const savedTeam = await this.teamRepository.save(newTeam);
 
     leader.team = savedTeam;
@@ -45,4 +45,21 @@ export class TeamsService {
     return savedTeam;
   }
 
+  async getTeamUsers(teamId: number): Promise<any[]> {
+    const team = await this.teamRepository.findOne({
+      where: { id: teamId },
+      relations: ['users', 'leader'],
+    });
+
+    if (!team) {
+      throw new NotFoundException('팀을 찾을 수 없습니다.');
+    }
+
+    return team.users.map(user => ({
+      id: user.id,
+      name: user.name,
+      isLeader: user.id === team.leader.id,
+      isReady: false, 
+    }));
+  }
 }

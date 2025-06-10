@@ -18,4 +18,9 @@ export class TeamsController {
     return this.teamsService.getWaitingTeams();
   }
 
+  @Get(':teamId/users')
+  async getTeamUsers(@Param('teamId') teamId: number) {
+    return this.teamsService.getTeamUsers(Number(teamId));
+  }
+
 }
