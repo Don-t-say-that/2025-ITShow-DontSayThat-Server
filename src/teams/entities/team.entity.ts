@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
 @Entity()
@@ -9,8 +9,12 @@ export class Team {
   @Column({ nullable: true })
   name?: string;
 
+  @OneToOne(() => User, { eager: true })
+  @JoinColumn({ name: 'leaderId' })
+  leader: User;
+
   @Column()
-  leaderId: number; // 방장 ID
+  leaderId: number;
 
   @Column({ default: 'waiting' })
   status: 'waiting' | 'playing' | 'finished'; 
