@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
@@ -36,4 +36,17 @@ export class UsersService {
 
     return this.userRepository.save(user);
   }
+
+  async joinTeam (userId: number, teamId: number): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const team = await this.teamRepository.findOne({ where: { id: teamId } });
+
+    if (!user || !team) {
+      throw new NotFoundException('사용자 또는 팀이 존재하지 않습니다.');
+    }
+
+    user.team = team;
+    return this.userRepository.save(user);
+  }
+
 }
