@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
 @Entity()
@@ -17,7 +24,7 @@ export class Team {
   leaderId: number;
 
   @Column({ default: 'waiting' })
-  status: 'waiting' | 'playing' | 'finished'; 
+  status: 'waiting' | 'playing' | 'finished';
 
   @OneToMany(() => User, (user) => user.team)
   users: User[];
