@@ -6,9 +6,11 @@ import {
   JoinColumn,
   OneToOne,
   Unique,
+  OneToMany,
 } from 'typeorm';
 import { Team } from '../../teams/entities/team.entity';
 import { Character } from './character.entity';
+import { ChatMessage } from 'src/chat/entity/chat.entity';
 
 @Entity()
 @Unique(['teamId', 'characterId'])
@@ -41,4 +43,7 @@ export class User {
 
   @Column({ nullable: true })
   characterId: number;
+
+  @OneToMany(() => ChatMessage, (msg) => msg.user)
+  chatMessages: ChatMessage[];
 }
