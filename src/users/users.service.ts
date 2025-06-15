@@ -63,7 +63,7 @@ export class UsersService {
 
       // user가 속한 team의 캐릭터 불러오기
       const teamUsers = await manager.find(User, {
-        where: { id: user.teamId },
+        where: { teamId: user.teamId },
         relations: ['character'],
       });
 
