@@ -4,9 +4,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { TeamsModule } from './teams/teams.module';
 import { WaitingRoomGateway } from './gateways/waiting-room.gateway';
+import { ChatModule } from './chat/chat.module';
+import { CharacterGateway } from './character/character.gateway';
 
 @Module({
-  providers: [WaitingRoomGateway],
+  providers: [WaitingRoomGateway, CharacterGateway],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
@@ -22,11 +24,12 @@ import { WaitingRoomGateway } from './gateways/waiting-room.gateway';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true,
+        synchronize: false,
       }),
     }),
     UsersModule,
     TeamsModule,
+    ChatModule,
   ],
 })
 export class AppModule {}
