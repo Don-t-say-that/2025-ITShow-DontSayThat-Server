@@ -22,5 +22,4 @@ export class TeamsController {
   async getTeamUsers(@Param('teamId') teamId: number) {
     return this.teamsService.getTeamUsers(Number(teamId));
   }
-
 }

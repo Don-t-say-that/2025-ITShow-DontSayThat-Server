@@ -4,7 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { TeamsModule } from './teams/teams.module';
 import { ChatModule } from './chat/chat.module';
-import { RoomModule } from './room/room.module'
+import { RoomModule } from './room/room.module';
 
 @Module({
   imports: [
@@ -28,7 +28,7 @@ import { RoomModule } from './room/room.module'
     RoomModule,
     UsersModule,
     TeamsModule,
-    ChatModule, 
+    ChatModule,
   ],
   providers: [],
 })
