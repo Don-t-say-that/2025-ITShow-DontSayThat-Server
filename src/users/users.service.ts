@@ -21,7 +21,7 @@ export class UsersService {
 
     @InjectRepository(Character)
     private readonly characterRepository: Repository<Character>,
-  ) {}
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const { name, password } = createUserDto;
@@ -43,7 +43,10 @@ export class UsersService {
   }
 
   async joinTeam(userId: number, teamId: number): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['character']
+    });
     const team = await this.teamRepository.findOne({ where: { id: teamId } });
 
     if (!user || !team) {
@@ -51,7 +54,32 @@ export class UsersService {
     }
 
     user.team = team;
-    return this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
+    console.log(`팀 참여 `, savedUser);
+
+    return savedUser;
+  }
+
+  async getFullUserData(userId: number): Promise<any> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['character', 'team'],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`사용자를 찾을 수 없음`);
+    }
+
+    const isLeader = user.team?.leaderId === user.id;
+
+    return {
+      id: user.id,
+      name: user.name,
+      characterId: user.character?.id || 0,
+      character: user.character?.image || '',
+      isLeader,
+      isReady: false,
+    };
   }
 
   async randomCharacterToUser(userId: number) {

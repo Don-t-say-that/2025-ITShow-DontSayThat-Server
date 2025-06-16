@@ -3,12 +3,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { TeamsModule } from './teams/teams.module';
-import { WaitingRoomGateway } from './gateways/waiting-room.gateway';
 import { ChatModule } from './chat/chat.module';
-import { CharacterGateway } from './character/character.gateway';
+import { RoomModule } from './room/room.module'
 
 @Module({
-  providers: [WaitingRoomGateway, CharacterGateway],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
@@ -24,12 +22,14 @@ import { CharacterGateway } from './character/character.gateway';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false, 
+        synchronize: false,
       }),
     }),
+    RoomModule,
     UsersModule,
     TeamsModule,
-    ChatModule,
+    ChatModule, 
   ],
+  providers: [],
 })
 export class AppModule {}
