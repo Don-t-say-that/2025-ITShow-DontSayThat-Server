@@ -102,6 +102,17 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
     });
   }
 
+  @SubscribeMessage('startGame')
+  handleStartGame(
+    @MessageBody() data: { teamId: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const roomName = `room-${data.teamId}`;
+    console.log(`게임시작 - ${roomName}`);
+    this.server.to(roomName).emit('goToForbidden');
+  }
+
+
   notifyUserJoined(teamId: number, userData: any) {
     const roomName = `room-${teamId}`;
     console.log(`notifyUserJoined 호출됨`);
