@@ -1,4 +1,3 @@
-// game-result.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,

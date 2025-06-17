@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 import { TeamsService } from './teams.service';
 import { RoomService } from '../room/room.service';
-import { CreateTeamDto } from './dto/create-team.dto';
 import { Team } from './entities/team.entity';
 
 @Controller('teams')
@@ -49,4 +48,10 @@ export class TeamsController {
   ) {
     return this.roomService.createForbiddenWord(teamId, body.userId, body.word);
   }
+
+  @Get(':teamId/ranking')
+  async getRankingByTeam(@Param('teamId') teamId: number) {
+    return this.teamsService.getRankingByTeam(Number(teamId));
+  }
+
 }
