@@ -105,7 +105,7 @@ export class TeamsService {
     team.status = 'finished';
     return await this.teamRepository.save(team);
   }
-  
+
   async getRankingByTeam(teamId: number): Promise<any[]> {
     const results = await this.gameRankingRepository.find({
       where: {
@@ -113,6 +113,24 @@ export class TeamsService {
           id: teamId,
         },
       },
+      order: {
+        score: 'DESC',
+      },
+      relations: ['user'],
+    });
+
+    return results.map((result) => ({
+      id: result.id,
+      score: result.score,
+      createdAt: result.createdAt,
+      user: {
+        name: result.user.name,
+      },
+    }));
+  }
+
+  async getRankingByAllUser(): Promise<any[]> {
+    const results = await this.gameRankingRepository.find({
       order: {
         score: 'DESC',
       },

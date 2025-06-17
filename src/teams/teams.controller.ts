@@ -58,4 +58,9 @@ export class TeamsController {
   async getRankingByTeam(@Param('teamId') teamId: number) {
     return this.teamsService.getRankingByTeam(Number(teamId));
   }
+
+  @Get('ranking')
+  async getRankingByAllUser() {
+    return this.teamsService.getRankingByAllUser();
+  }
 }
