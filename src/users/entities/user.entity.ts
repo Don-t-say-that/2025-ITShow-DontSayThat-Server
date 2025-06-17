@@ -11,6 +11,7 @@ import {
 import { Team } from '../../teams/entities/team.entity';
 import { Character } from './character.entity';
 import { ChatMessage } from 'src/chat/entity/chat.entity';
+import { GameResult } from 'src/chat/entity/gameResult.entity';
 
 @Entity()
 @Unique(['teamId', 'characterId'])
@@ -46,4 +47,7 @@ export class User {
 
   @OneToMany(() => ChatMessage, (msg) => msg.user)
   chatMessages: ChatMessage[];
+
+  @OneToMany(() => GameResult, (result) => result.user)
+  results: GameResult[];
 }

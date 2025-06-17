@@ -4,4 +4,5 @@ export class MoveCharacterDto {
   y: number;
   imgUrl?: string;
   teamId: number;
+  nickname?: string;
 }

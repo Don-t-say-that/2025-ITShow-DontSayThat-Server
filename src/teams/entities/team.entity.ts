@@ -9,6 +9,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { ChatMessage } from 'src/chat/entity/chat.entity';
 import { ForbiddenWord } from 'src/room/entity/room.entity';
+import { GameResult } from 'src/chat/entity/gameResult.entity';
 
 @Entity()
 export class Team {
@@ -37,6 +38,9 @@ export class Team {
   @OneToMany(() => ChatMessage, (msg) => msg.team)
   chatMessages: ChatMessage[];
 
-  @OneToMany(() => ForbiddenWord, forbiddenWord => forbiddenWord.team)
+  @OneToMany(() => ForbiddenWord, (forbiddenWord) => forbiddenWord.team)
   forbiddenWords: ForbiddenWord[];
+
+  @OneToMany(() => GameResult, (result) => result.team)
+  results: GameResult[];
 }
