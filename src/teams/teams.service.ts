@@ -10,6 +10,7 @@ import { User } from '../users/entities/user.entity';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { WaitingRoomGateway } from 'src/room/room.gateway';
 import { GetTeamDto } from './dto/get-team.dto';
+import { GameResult } from 'src/chat/entity/gameResult.entity';
 
 @Injectable()
 export class TeamsService {
@@ -19,6 +20,8 @@ export class TeamsService {
 
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(GameResult)
+    private readonly gameRankingRepository: Repository<GameResult>,
     private readonly waitingRoomGateway: WaitingRoomGateway,
   ) { }
 
@@ -91,6 +94,29 @@ export class TeamsService {
     };
   }
 
+  async getRankingByTeam(teamId: number): Promise<any[]> {
+    const results = await this.gameRankingRepository.find({
+      where: {
+        team: {
+          id: teamId,
+        },
+      },
+      order: {
+        score: 'DESC',
+      },
+      relations: ['user'],
+    });
+
+    return results.map((result) => ({
+      id: result.id,
+      score: result.score,
+      createdAt: result.createdAt,
+      user: {
+        name: result.user.name,
+      },
+    }));
+  }
+
   async exitTeam(userId: number): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
@@ -117,7 +143,7 @@ export class TeamsService {
           console.error(`사용자 퇴장 소켓 실패:`, error);
         }
       }
-      
+
       else if (team && team.leaderId === userId) {
         try {
           this.waitingRoomGateway.notifyUserLeft(teamId, userId);
