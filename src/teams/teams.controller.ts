@@ -48,6 +48,7 @@ export class TeamsController {
   ) {
     return this.roomService.createForbiddenWord(teamId, body.userId, body.word);
   }
+
   @Patch(':teamId/finish')
   async gameFinished( @Param('teamId') teamId : number) {
     return this.teamsService.gameFinished(Number(teamId));
