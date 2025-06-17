@@ -10,8 +10,15 @@ import {
 import { Socket, Server } from 'socket.io';
 import { UsersService } from 'src/users/users.service';
 
+interface CustomSocket extends Socket {
+  data: {
+    roomName?: string;
+  };
+}
+
 @WebSocketGateway({ cors: { origin: '*' } })
-export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class WaitingRoomGateway
+  implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(private readonly usersService: UsersService) { }
 
   @WebSocketServer()
@@ -19,6 +26,8 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
 
   private userSocketMap = new Map<number, string>();
   private socketUserMap = new Map<string, number>();
+  private forbiddenWordsMap = new Map<number, string>();
+  private readyUsersMap = new Map<number, Set<number>>();
 
   handleConnection(client: Socket) {
     console.log(`클라이언트 연결: ${client.id}`);
@@ -30,13 +39,62 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
     if (userId) {
       this.userSocketMap.delete(userId);
       this.socketUserMap.delete(client.id);
+      this.forbiddenWordsMap.delete(userId);
+
+      this.readyUsersMap.forEach((readyUsers, teamId) => {
+        readyUsers.delete(userId);
+      });
+    }
+  }
+
+  @SubscribeMessage('enterForbidden')
+  handleEnterForbidden(
+    @MessageBody() data: { teamId: number; userId: number; word: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { teamId, userId, word } = data;
+
+    this.forbiddenWordsMap.set(userId, word);
+    console.log(`사용자 ${userId} 금칙어 입력: ${word}`);
+
+    if (!this.readyUsersMap.has(teamId)) {
+      this.readyUsersMap.set(teamId, new Set());
+    }
+    const readyUsers = this.readyUsersMap.get(teamId);
+    if (readyUsers) {
+      readyUsers.add(userId);
+    }
+
+    const roomName = `room-${teamId}`;
+    const room = this.server.sockets.adapter.rooms.get(roomName);
+
+    if (room && readyUsers) {
+      const totalUsers = room.size;
+      const readyCount = readyUsers.size;
+
+      console.log(`팀 ${teamId}: 준비 완료 ${readyCount}/${totalUsers}명`);
+
+      this.server.to(roomName).emit('readyStatus', {
+        readyUsers: Array.from(readyUsers),
+        totalUsers: totalUsers,
+        readyCount: readyCount
+      });
+
+      if (totalUsers === readyCount) {
+        console.log(`팀 ${teamId}: 모든 사용자가 준비 완료`);
+        this.server.to(roomName).emit('allUsersReady');
+
+        setTimeout(() => {
+          this.readyUsersMap.delete(teamId);
+        }, 5000);
+      }
     }
   }
 
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(
     @MessageBody() data: { teamId: number; userId?: number },
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: CustomSocket,
   ) {
     const roomName = `room-${data.teamId}`;
     client.join(roomName);
@@ -48,8 +106,20 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
       console.log(`${data.userId} 소켓 ${client.id} 매핑 저장`);
 
       const userData = await this.usersService.getFullUserData(data.userId);
+      // 본인을 제외한 다른 사용자들에게만 알림
+      client.to(roomName).emit('userJoined', userData);
 
-      this.server.to(roomName).emit('userJoined', userData);
+      const readyUsers = this.readyUsersMap.get(data.teamId);
+      if (readyUsers && readyUsers.size > 0) {
+        const room = this.server.sockets.adapter.rooms.get(roomName);
+        const totalUsers = room ? room.size : 0;
+
+        client.emit('readyStatus', {
+          readyUsers: Array.from(readyUsers),
+          totalUsers: totalUsers,
+          readyCount: readyUsers.size
+        });
+      }
     }
 
     const room = this.server.sockets.adapter.rooms.get(roomName);
@@ -74,8 +144,32 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
     @ConnectedSocket() client: Socket,
   ) {
     const roomName = `room-${data.teamId}`;
-    console.log(`사용자 퇴장: ${data.userId}`);
+    console.log(`사용자 퇴장: ${data.userId} from ${roomName}`);
+
+    const readyUsers = this.readyUsersMap.get(data.teamId);
+    if (readyUsers) {
+      readyUsers.delete(data.userId);
+
+      const room = this.server.sockets.adapter.rooms.get(roomName);
+      const totalUsers = room ? room.size - 1 : 0; // 현재 나가는 사용자 제외
+
+      this.server.to(roomName).emit('readyStatus', {
+        readyUsers: Array.from(readyUsers),
+        totalUsers: totalUsers,
+        readyCount: readyUsers.size
+      });
+    }
+
+    const socketId = this.userSocketMap.get(data.userId);
+    if (socketId) {
+      this.userSocketMap.delete(data.userId);
+      this.socketUserMap.delete(socketId);
+    }
+
     this.server.to(roomName).emit('userLeft', { userId: data.userId });
+    client.leave(roomName);
+    
+    console.log(`사용자 ${data.userId} 퇴장 처리 완료`);
   }
 
   @SubscribeMessage('updateUsers')
@@ -90,15 +184,49 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
 
   @SubscribeMessage('characterSelected')
   handleCharacterSelected(
-    @MessageBody() data: { teamId: number; userId: number; characterId: number; character: string },
+    @MessageBody()
+    data: {
+      teamId: number;
+      userId: number;
+      characterId: number;
+      character: string;
+    },
   ) {
     const roomName = `room-${data.teamId}`;
-    console.log(`캐릭터 선택: 사용자 ${data.userId} -> 캐릭터 ${data.characterId}`);
+    console.log(
+      `캐릭터 선택: 사용자 ${data.userId} -> 캐릭터 ${data.characterId}`,
+    );
 
     this.server.to(roomName).emit('characterSelected', {
       userId: data.userId,
       characterId: data.characterId,
-      character: data.character
+      character: data.character,
+    });
+  }
+
+  @SubscribeMessage('startGame')
+  handleStartGame(
+    @MessageBody() data: { teamId: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const roomName = `room-${data.teamId}`;
+    console.log(`게임시작 - ${roomName}`);
+    this.server.to(roomName).emit('goToForbidden');
+  }
+
+  @SubscribeMessage('resetReady')
+  handleResetReady(
+    @MessageBody() data: { teamId: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    console.log(`팀 ${data.teamId} 준비 상태 초기화`);
+    this.readyUsersMap.delete(data.teamId);
+
+    const roomName = `room-${data.teamId}`;
+    this.server.to(roomName).emit('readyStatus', {
+      readyUsers: [],
+      totalUsers: 0,
+      readyCount: 0
     });
   }
 
@@ -108,7 +236,6 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
     console.log(`roomName: ${roomName}`);
     console.log(`userData:`, userData);
 
-    // 현재 연결된 클라이언트 수
     const room = this.server.sockets.adapter.rooms.get(roomName);
     const clientCount = room ? room.size : 0;
     console.log(` ${roomName} 클라이언트 수: ${clientCount}`);
@@ -122,7 +249,10 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
     console.log(`userJoined 이벤트 전송 완료`);
   }
 
-  notifyCharacterSelected(teamId: number, data: { userId: number; characterId: number; character: string }) {
+  notifyCharacterSelected(
+    teamId: number,
+    data: { userId: number; characterId: number; character: string },
+  ) {
     const roomName = `room-${teamId}`;
     console.log(`캐릭터 선택 알림: ${roomName}`, data);
     this.server.to(roomName).emit('characterSelected', data);
@@ -130,23 +260,59 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
 
   notifyUserLeft(teamId: number, userId: number) {
     const roomName = `room-${teamId}`;
-    console.log(`사용자 퇴장 알림: ${roomName}`, userId);
+    console.log(`사용자 퇴장 알림 시작: ${roomName}`, userId);
+
+    const socketId = this.userSocketMap.get(userId);
+    if (socketId) {
+      this.userSocketMap.delete(userId);
+      this.socketUserMap.delete(socketId);
+    }
+
+    const readyUsers = this.readyUsersMap.get(teamId);
+    if (readyUsers) {
+      readyUsers.delete(userId);
+    }
+
+    const room = this.server.sockets.adapter.rooms.get(roomName);
+    const clientCount = room ? room.size : 0;
+
     this.server.to(roomName).emit('userLeft', { userId });
+
+    this.server.sockets.emit('userCountUpdated', {
+      teamId,
+      userCount: clientCount,
+    });
+
+    if (readyUsers) {
+      this.server.to(roomName).emit('readyStatus', {
+        readyUsers: Array.from(readyUsers),
+        totalUsers: clientCount,
+        readyCount: readyUsers.size
+      });
+    }
+
+    console.log(`사용자 ${userId} 퇴장 알림 완료`);
   }
 
-  // 팀 생성 알림
   notifyTeamCreated(teamData: any) {
-    console.log(`🏗️ notifyTeamCreated 호출됨`);
-    console.log(`📋 teamData:`, teamData);
+    console.log(`notifyTeamCreated 호출`);
+    console.log(`teamData:`, teamData);
 
-    this.server.emit('teamCreated', {
+    this.server.sockets.emit('teamCreated', {
       id: teamData.id,
       name: teamData.name,
       leaderId: teamData.leader?.id,
       leaderName: teamData.leader?.name,
       userCount: 1,
-      status: teamData.status || 'waiting'
+      status: teamData.status || 'waiting',
     });
     console.log(` teamCreated 이벤트 전송 완료`);
+  }
+
+  notifyTeamDeleted(teamId: number) {
+    console.log(`notifyTeamDeleted 호출  팀 ID: ${teamId}`);
+    this.server.sockets.emit('teamDeleted', { teamId });
+    this.readyUsersMap.delete(teamId);
+    console.log(`teamDeleted 이벤트 전송 완료`);
   }
 }

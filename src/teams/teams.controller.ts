@@ -1,14 +1,27 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { TeamsService } from './teams.service';
-import { CreateTeamDto } from './dto/create-team.dto';
+import { RoomService } from '../room/room.service';
 import { Team } from './entities/team.entity';
 
 @Controller('teams')
 export class TeamsController {
-  constructor(private readonly teamsService: TeamsService) {}
+  constructor(
+    private readonly teamsService: TeamsService,
+    private readonly roomService: RoomService,
+  ) {}
 
   @Post()
-  async createTeam(@Body() body: { name: string; leaderId: number }): Promise<Team> {
+  async createTeam(
+    @Body() body: { name: string; leaderId: number },
+  ): Promise<Team> {
     const { name, leaderId } = body;
     return this.teamsService.createTeam(name, leaderId);
   }
@@ -21,5 +34,37 @@ export class TeamsController {
   @Get(':teamId/users')
   async getTeamUsers(@Param('teamId') teamId: number) {
     return this.teamsService.getTeamUsers(Number(teamId));
+  }
+   @Patch(':userId/users')
+  async exitTeam(@Param('userId') userId: number) {
+    return this.teamsService.exitTeam(Number(userId));
+  }
+
+  @Post(':teamId/forbidden-words')
+  async addForbiddenWord(
+    @Param('teamId') teamId: number,
+    @Body() body: { word: string; userId: number },
+  ) {
+    return this.roomService.createForbiddenWord(teamId, body.userId, body.word);
+  }
+
+  @Patch(':teamId/finish')
+  async gameFinished( @Param('teamId') teamId : number) {
+    return this.teamsService.gameFinished(teamId);
+  }
+
+  @Get(':teamId/ranking')
+  async getRankingByTeam(@Param('teamId') teamId: number) {
+    return this.teamsService.getRankingByTeam(teamId);
+  }
+
+  @Get('ranking')
+  async getRankingByAllUser() {
+    return this.teamsService.getRankingByAllUser();
+  }
+
+  @Get(':userId/:teamId/result')
+  async getResultByUser(@Param('userId')userId: number , @Param('teamId') teamId: number) {
+    return this.teamsService.getResultByUser(userId, teamId);
   }
 }

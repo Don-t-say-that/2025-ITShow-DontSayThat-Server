@@ -5,6 +5,7 @@ import { UsersModule } from './users/users.module';
 import { TeamsModule } from './teams/teams.module';
 import { ChatModule } from './chat/chat.module';
 import { RoomModule } from './room/room.module';
+import { CharacterGateway } from './character/character.gateway';
 
 @Module({
   imports: [
@@ -30,6 +31,6 @@ import { RoomModule } from './room/room.module';
     TeamsModule,
     ChatModule,
   ],
-  providers: [],
+  providers: [CharacterGateway],
 })
 export class AppModule {}

@@ -48,7 +48,7 @@ export class UsersController {
     return this.usersService.getFullUserData(id);
   }
 
-  @Patch('/:id/random')
+  @Patch(':id/random')
   async saveRandomCharacter(@Param('id') id: number) {
     return this.usersService.randomCharacterToUser(id);
   }

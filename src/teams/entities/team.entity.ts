@@ -8,6 +8,8 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { ChatMessage } from 'src/chat/entity/chat.entity';
+import { ForbiddenWord } from 'src/room/entity/room.entity';
+import { GameResult } from 'src/chat/entity/gameResult.entity';
 
 @Entity()
 export class Team {
@@ -16,6 +18,9 @@ export class Team {
 
   @Column({ nullable: true })
   name?: string;
+
+  @Column({ nullable: true })
+  backgroundImage?: string;
 
   @OneToOne(() => User, { eager: true })
   @JoinColumn({ name: 'leaderId' })
@@ -32,4 +37,10 @@ export class Team {
 
   @OneToMany(() => ChatMessage, (msg) => msg.team)
   chatMessages: ChatMessage[];
+
+  @OneToMany(() => ForbiddenWord, (forbiddenWord) => forbiddenWord.team)
+  forbiddenWords: ForbiddenWord[];
+
+  @OneToMany(() => GameResult, (result) => result.team)
+  results: GameResult[];
 }

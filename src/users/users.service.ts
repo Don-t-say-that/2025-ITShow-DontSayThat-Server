@@ -29,23 +29,26 @@ export class UsersService {
     const existingUser = await this.userRepository.findOne({ where: { name } });
 
     if (existingUser) {
-      throw new BadRequestException('중복된 사용자입니다.');
+      const isPasswordCorrect = await bcrypt.compare(password, existingUser.password);
+      if (!isPasswordCorrect) {
+        throw new BadRequestException('중복된 사용자입니다. 새로운 닉네임을 입력해주세요.');
+      }
+      return existingUser;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = this.userRepository.create({
+    const newUser = this.userRepository.create({
       name,
       password: hashedPassword,
     });
 
-    return this.userRepository.save(user);
+    return this.userRepository.save(newUser);
   }
 
   async joinTeam(userId: number, teamId: number): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      relations: ['character']
+      relations: ['character'],
     });
     const team = await this.teamRepository.findOne({ where: { id: teamId } });
 
@@ -83,43 +86,50 @@ export class UsersService {
   }
 
   async randomCharacterToUser(userId: number) {
-    return this.dataSource.transaction(async (manager) => {
-      const user = await manager.findOne(User, {
-        where: { id: userId },
+    try {
+      return this.dataSource.transaction(async (manager) => {
+        const user = await manager.findOne(User, {
+          where: { id: userId },
+        });
+        if (!user) throw new NotFoundException('존재하지 않는 사용자 입니다.');
+
+        // user가 속한 team의 캐릭터 불러오기
+        const teamUsers = await manager.find(User, {
+          where: user.teamId !== null ? { teamId: user.teamId } : {},
+          relations: ['character'],
+        });
+
+        // 이미 사용된 캐릭터 id 제외
+        const usedCharacterIds = teamUsers
+          .map((t) => t.characterId)
+          .filter((id): id is number => !!id);
+
+        // 안 사용된 캐릭터 id 목록 구하기
+        const availableCharacters = await manager.find(Character, {
+          where: usedCharacterIds.length
+            ? { id: Not(In(usedCharacterIds)) }
+            : {},
+        });
+
+        if (availableCharacters.length === 0)
+          throw new BadRequestException('이미 모든 캐릭터가 배정되었습니다.');
+
+        // 랜덤 캐릭터 index 구하기
+        const randomIndex = Math.floor(
+          Math.random() * availableCharacters.length,
+        );
+        const randomCharacter = availableCharacters[randomIndex];
+
+        if (!randomCharacter) {
+          throw new NotFoundException('랜덤 캐릭터가 존재하지 않습니다.');
+        }
+
+        user.character = randomCharacter;
+        return await manager.save(user);
       });
-      if (!user) throw new NotFoundException('존재하지 않는 사용자 입니다.');
-
-      // user가 속한 team의 캐릭터 불러오기
-      const teamUsers = await manager.find(User, {
-        where: { teamId: user.teamId },
-        relations: ['character'],
-      });
-
-      // 이미 사용된 캐릭터 id 제외
-      const usedCharacterIds = teamUsers
-        .map((t) => t.characterId)
-        .filter((id): id is number => !!id);
-
-      // 안 사용된 캐릭터 id 목록 구하기
-      const availableCharacters = await manager.find(Character, {
-        where: usedCharacterIds.length ? { id: Not(In(usedCharacterIds)) } : {},
-      });
-
-      if (availableCharacters.length === 0)
-        throw new BadRequestException('이미 모든 캐릭터가 배정되었습니다.');
-
-      // 랜덤 캐릭터 index 구하기
-      const randomIndex = Math.floor(
-        Math.random() * availableCharacters.length,
-      );
-      const randomCharacter = availableCharacters[randomIndex];
-
-      if (!randomCharacter) {
-        throw new NotFoundException('랜덤 캐릭터가 존재하지 않습니다.');
-      }
-
-      user.character = randomCharacter;
-      return await manager.save(user);
-    });
+    } catch (e) {
+      console.error('randomCharacterToUser error:', e);
+      throw e;
+    }
   }
 }
