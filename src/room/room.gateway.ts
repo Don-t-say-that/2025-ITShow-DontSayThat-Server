@@ -19,6 +19,7 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
 
   private userSocketMap = new Map<number, string>();
   private socketUserMap = new Map<string, number>();
+  private forbiddenWordsMap = new Map<number, string>();
 
   handleConnection(client: Socket) {
     console.log(`클라이언트 연결: ${client.id}`);
@@ -30,8 +31,42 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
     if (userId) {
       this.userSocketMap.delete(userId);
       this.socketUserMap.delete(client.id);
+      this.forbiddenWordsMap.delete(userId);
     }
   }
+
+  @SubscribeMessage('enterForbidden')
+  handleEnterForbidden(
+    @MessageBody() data: { teamId: number; userId: number; word: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { teamId, userId, word } = data;
+
+    this.forbiddenWordsMap.set(userId, word);
+    console.log(`사용자 ${userId} 금칙어 입력: ${word}`);
+
+    const roomName = `room-${teamId}`;
+    const room = this.server.sockets.adapter.rooms.get(roomName);
+
+    const usersForbbidenWords: Record<number, string> = {};
+    this.forbiddenWordsMap.forEach((value, key) => {
+      usersForbbidenWords[key] = value;
+    });
+    this.server.to(roomName).emit('forbiddenStatus', usersForbbidenWords);
+
+    if (room) {
+      const totalUsers = room.size;
+      const usersWithForbidden = Object.values(usersForbbidenWords).filter(
+        (word) => word !== undefined && word.trim() !== '',
+      ).length;
+
+      if (totalUsers === usersWithForbidden) {
+        console.log('모든 사용자가 금칙어를 입력');
+        this.server.to(roomName).emit('allUsersEntered');
+      }
+    }
+  }
+
 
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(

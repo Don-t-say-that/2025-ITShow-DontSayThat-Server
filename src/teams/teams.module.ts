@@ -13,6 +13,6 @@ import { RoomModule } from 'src/room/room.module';
   ],
   providers: [TeamsService],
   controllers: [TeamsController],
-  exports: [TeamsService],
+  exports: [TeamsService, TypeOrmModule],
 })
 export class TeamsModule {}

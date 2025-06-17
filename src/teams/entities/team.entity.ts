@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { ChatMessage } from 'src/chat/entity/chat.entity';
+import { ForbiddenWord } from 'src/room/entity/room.entity';
 
 @Entity()
 export class Team {
@@ -32,4 +33,7 @@ export class Team {
 
   @OneToMany(() => ChatMessage, (msg) => msg.team)
   chatMessages: ChatMessage[];
+
+  @OneToMany(() => ForbiddenWord, forbiddenWord => forbiddenWord.team)
+  forbiddenWords: ForbiddenWord[];
 }
