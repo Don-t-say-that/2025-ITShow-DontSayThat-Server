@@ -32,7 +32,7 @@ export class User {
   team?: Team;
 
   @Column({ nullable: true })
-  teamId?: number;
+  teamId?: number | null;
 
   @ManyToOne(() => Character, (character) => character.user, {
     nullable: false,

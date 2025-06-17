@@ -106,7 +106,8 @@ export class WaitingRoomGateway
       console.log(`${data.userId} 소켓 ${client.id} 매핑 저장`);
 
       const userData = await this.usersService.getFullUserData(data.userId);
-      this.server.to(roomName).emit('userJoined', userData);
+      // 본인을 제외한 다른 사용자들에게만 알림
+      client.to(roomName).emit('userJoined', userData);
 
       const readyUsers = this.readyUsersMap.get(data.teamId);
       if (readyUsers && readyUsers.size > 0) {
@@ -143,14 +144,14 @@ export class WaitingRoomGateway
     @ConnectedSocket() client: Socket,
   ) {
     const roomName = `room-${data.teamId}`;
-    console.log(`사용자 퇴장: ${data.userId}`);
+    console.log(`사용자 퇴장: ${data.userId} from ${roomName}`);
 
     const readyUsers = this.readyUsersMap.get(data.teamId);
     if (readyUsers) {
       readyUsers.delete(data.userId);
 
       const room = this.server.sockets.adapter.rooms.get(roomName);
-      const totalUsers = room ? room.size : 0;
+      const totalUsers = room ? room.size - 1 : 0; // 현재 나가는 사용자 제외
 
       this.server.to(roomName).emit('readyStatus', {
         readyUsers: Array.from(readyUsers),
@@ -159,7 +160,16 @@ export class WaitingRoomGateway
       });
     }
 
+    const socketId = this.userSocketMap.get(data.userId);
+    if (socketId) {
+      this.userSocketMap.delete(data.userId);
+      this.socketUserMap.delete(socketId);
+    }
+
     this.server.to(roomName).emit('userLeft', { userId: data.userId });
+    client.leave(roomName);
+    
+    console.log(`사용자 ${data.userId} 퇴장 처리 완료`);
   }
 
   @SubscribeMessage('updateUsers')
@@ -226,7 +236,6 @@ export class WaitingRoomGateway
     console.log(`roomName: ${roomName}`);
     console.log(`userData:`, userData);
 
-    // 현재 연결된 클라이언트 수
     const room = this.server.sockets.adapter.rooms.get(roomName);
     const clientCount = room ? room.size : 0;
     console.log(` ${roomName} 클라이언트 수: ${clientCount}`);
@@ -253,31 +262,36 @@ export class WaitingRoomGateway
     const roomName = `room-${teamId}`;
     console.log(`사용자 퇴장 알림 시작: ${roomName}`, userId);
 
-    const room = this.server.sockets.adapter.rooms.get(roomName);
-    const clientCount = room ? room.size : 0;
-    console.log(`${roomName} 클라이언트 수: ${clientCount}`);
-
-    if (clientCount === 0) {
-      console.log(`방에 연결된 클라이언트가 없음`);
-    } else {
-      this.server.to(roomName).emit('userLeft', { userId });
-      console.log(`userLeft 이벤트 전송 완료`);
+    const socketId = this.userSocketMap.get(userId);
+    if (socketId) {
+      this.userSocketMap.delete(userId);
+      this.socketUserMap.delete(socketId);
     }
 
     const readyUsers = this.readyUsersMap.get(teamId);
     if (readyUsers) {
       readyUsers.delete(userId);
+    }
 
-      const totalUsers = clientCount > 0 ? clientCount - 1 : 0; // 퇴장하는 사용자 제외
+    const room = this.server.sockets.adapter.rooms.get(roomName);
+    const clientCount = room ? room.size : 0;
 
-      console.log(`준비 상태 업데이트: ${readyUsers.size}/${totalUsers}`);
+    this.server.to(roomName).emit('userLeft', { userId });
 
+    this.server.sockets.emit('userCountUpdated', {
+      teamId,
+      userCount: clientCount,
+    });
+
+    if (readyUsers) {
       this.server.to(roomName).emit('readyStatus', {
         readyUsers: Array.from(readyUsers),
-        totalUsers: totalUsers,
+        totalUsers: clientCount,
         readyCount: readyUsers.size
       });
     }
+
+    console.log(`사용자 ${userId} 퇴장 알림 완료`);
   }
 
   notifyTeamCreated(teamData: any) {

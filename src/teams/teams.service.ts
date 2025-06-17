@@ -103,7 +103,7 @@ export class TeamsService {
     if (user.teamId) {
       const teamId = user.teamId;
       const team = await this.teamRepository.findOne({
-        where: { id: teamId },
+        where: user.teamId !== null ? { id: user.teamId } : {},
       });
 
       if (team && team.leaderId !== userId) {
@@ -116,8 +116,6 @@ export class TeamsService {
         } catch (error) {
           console.error(`사용자 퇴장 소켓 실패:`, error);
         }
-
-        user.teamId = undefined;
       }
       
       else if (team && team.leaderId === userId) {
@@ -133,11 +131,9 @@ export class TeamsService {
         } catch (error) {
           console.error(`팀 삭제 소켓 실패:`, error);
         }
-
-        user.teamId = undefined;
       }
     }
-
+    user.teamId = null;
     const savedUser = await this.userRepository.save(user);
     return savedUser;
   }
