@@ -23,8 +23,6 @@ export class CharacterGateway {
   ) {
     const roomName = `room-${moveCharacterDto.teamId}`;
 
-    console.log('gateway :', roomName);
-
     if (roomName) {
       client.nsp.to(roomName).emit('player-moved', moveCharacterDto); // roomName의 모든 사람에게 보내기 (나 포함)
     }
