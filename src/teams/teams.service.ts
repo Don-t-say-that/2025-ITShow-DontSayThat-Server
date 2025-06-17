@@ -93,6 +93,7 @@ export class TeamsService {
       backgroundImage: team.backgroundImage ?? '',
     };
   }
+
   async gameFinished(teamId: number): Promise<Team> {
     const team = await this.teamRepository.findOne({
       where: { id: teamId },
@@ -126,6 +127,28 @@ export class TeamsService {
       user: {
         name: result.user.name,
       },
+    }));
+  }
+
+  async getResultByUser(userId: number, teamId: number): Promise<any[]> {
+    const results = await this.gameRankingRepository.find({
+      where: {
+        user: {
+          id: userId,
+        },
+        team: {
+          id: teamId,
+        },
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+      relations: ['user', 'team'],
+    });
+
+    return results.map((result) => ({
+      name: result.user.name,
+      score: result.score,
     }));
   }
 

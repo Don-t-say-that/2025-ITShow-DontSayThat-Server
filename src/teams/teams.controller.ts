@@ -51,16 +51,21 @@ export class TeamsController {
 
   @Patch(':teamId/finish')
   async gameFinished( @Param('teamId') teamId : number) {
-    return this.teamsService.gameFinished(Number(teamId));
+    return this.teamsService.gameFinished(teamId);
   }
 
   @Get(':teamId/ranking')
   async getRankingByTeam(@Param('teamId') teamId: number) {
-    return this.teamsService.getRankingByTeam(Number(teamId));
+    return this.teamsService.getRankingByTeam(teamId);
   }
 
   @Get('ranking')
   async getRankingByAllUser() {
     return this.teamsService.getRankingByAllUser();
+  }
+
+  @Get(':userId/:teamId/result')
+  async getResultByUser(@Param('userId')userId: number , @Param('teamId') teamId: number) {
+    return this.teamsService.getResultByUser(userId, teamId);
   }
 }
