@@ -20,7 +20,7 @@ export class TeamsService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly waitingRoomGateway: WaitingRoomGateway,
-  ) {}
+  ) { }
 
   async getWaitingTeams(): Promise<any[]> {
     return this.teamRepository
@@ -89,5 +89,56 @@ export class TeamsService {
       })),
       backgroundImage: team.backgroundImage ?? '',
     };
+  }
+
+  async exitTeam(userId: number): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (user.teamId) {
+      const teamId = user.teamId;
+      const team = await this.teamRepository.findOne({
+        where: { id: teamId },
+      });
+
+      if (team && team.leaderId !== userId) {
+        try {
+          this.waitingRoomGateway.notifyUserLeft(teamId, userId);
+          console.log(`사용자 퇴장 소켓 성공`);
+
+          await new Promise(resolve => setTimeout(resolve, 100));   // 소켓 전송 시간 
+
+        } catch (error) {
+          console.error(`사용자 퇴장 소켓 실패:`, error);
+        }
+
+        user.teamId = undefined;
+      }
+      
+      else if (team && team.leaderId === userId) {
+        try {
+          this.waitingRoomGateway.notifyUserLeft(teamId, userId);
+          console.log(`리더 퇴장 소켓 성공`);
+          await new Promise(resolve => setTimeout(resolve, 200));
+          await this.teamRepository.remove(team);
+
+          this.waitingRoomGateway.notifyTeamDeleted(teamId);
+          console.log(`팀 삭제 소켓 성공`);
+
+        } catch (error) {
+          console.error(`팀 삭제 소켓 실패:`, error);
+        }
+
+        user.teamId = undefined;
+      }
+    }
+
+    const savedUser = await this.userRepository.save(user);
+    return savedUser;
   }
 }

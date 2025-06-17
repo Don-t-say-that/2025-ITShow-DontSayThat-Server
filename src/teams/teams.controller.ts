@@ -37,6 +37,11 @@ export class TeamsController {
     return this.teamsService.getTeamUsers(Number(teamId));
   }
 
+  @Patch(':userId/users')
+  async exitTeam(@Param('userId') userId: number) {
+    return this.teamsService.exitTeam(Number(userId));
+  }
+
   @Post(':teamId/forbidden-words')
   async addForbiddenWord(
     @Param('teamId') teamId: number,

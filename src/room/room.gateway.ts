@@ -18,9 +18,8 @@ interface CustomSocket extends Socket {
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class WaitingRoomGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
-  constructor(private readonly usersService: UsersService) {}
+  implements OnGatewayConnection, OnGatewayDisconnect {
+  constructor(private readonly usersService: UsersService) { }
 
   @WebSocketServer()
   server: Server;
@@ -41,7 +40,7 @@ export class WaitingRoomGateway
       this.userSocketMap.delete(userId);
       this.socketUserMap.delete(client.id);
       this.forbiddenWordsMap.delete(userId);
-      
+
       this.readyUsersMap.forEach((readyUsers, teamId) => {
         readyUsers.delete(userId);
       });
@@ -84,7 +83,7 @@ export class WaitingRoomGateway
       if (totalUsers === readyCount) {
         console.log(`팀 ${teamId}: 모든 사용자가 준비 완료`);
         this.server.to(roomName).emit('allUsersReady');
-        
+
         setTimeout(() => {
           this.readyUsersMap.delete(teamId);
         }, 5000);
@@ -113,7 +112,7 @@ export class WaitingRoomGateway
       if (readyUsers && readyUsers.size > 0) {
         const room = this.server.sockets.adapter.rooms.get(roomName);
         const totalUsers = room ? room.size : 0;
-        
+
         client.emit('readyStatus', {
           readyUsers: Array.from(readyUsers),
           totalUsers: totalUsers,
@@ -145,21 +144,21 @@ export class WaitingRoomGateway
   ) {
     const roomName = `room-${data.teamId}`;
     console.log(`사용자 퇴장: ${data.userId}`);
-    
+
     const readyUsers = this.readyUsersMap.get(data.teamId);
     if (readyUsers) {
       readyUsers.delete(data.userId);
-      
+
       const room = this.server.sockets.adapter.rooms.get(roomName);
       const totalUsers = room ? room.size : 0;
-      
+
       this.server.to(roomName).emit('readyStatus', {
         readyUsers: Array.from(readyUsers),
         totalUsers: totalUsers,
         readyCount: readyUsers.size
       });
     }
-    
+
     this.server.to(roomName).emit('userLeft', { userId: data.userId });
   }
 
@@ -212,7 +211,7 @@ export class WaitingRoomGateway
   ) {
     console.log(`팀 ${data.teamId} 준비 상태 초기화`);
     this.readyUsersMap.delete(data.teamId);
-    
+
     const roomName = `room-${data.teamId}`;
     this.server.to(roomName).emit('readyStatus', {
       readyUsers: [],
@@ -252,28 +251,38 @@ export class WaitingRoomGateway
 
   notifyUserLeft(teamId: number, userId: number) {
     const roomName = `room-${teamId}`;
-    console.log(`사용자 퇴장 알림: ${roomName}`, userId);
-    
+    console.log(`사용자 퇴장 알림 시작: ${roomName}`, userId);
+
+    const room = this.server.sockets.adapter.rooms.get(roomName);
+    const clientCount = room ? room.size : 0;
+    console.log(`${roomName} 클라이언트 수: ${clientCount}`);
+
+    if (clientCount === 0) {
+      console.log(`방에 연결된 클라이언트가 없음`);
+    } else {
+      this.server.to(roomName).emit('userLeft', { userId });
+      console.log(`userLeft 이벤트 전송 완료`);
+    }
+
     const readyUsers = this.readyUsersMap.get(teamId);
     if (readyUsers) {
       readyUsers.delete(userId);
-      
-      const room = this.server.sockets.adapter.rooms.get(roomName);
-      const totalUsers = room ? room.size : 0;
-      
+
+      const totalUsers = clientCount > 0 ? clientCount - 1 : 0; // 퇴장하는 사용자 제외
+
+      console.log(`준비 상태 업데이트: ${readyUsers.size}/${totalUsers}`);
+
       this.server.to(roomName).emit('readyStatus', {
         readyUsers: Array.from(readyUsers),
         totalUsers: totalUsers,
         readyCount: readyUsers.size
       });
     }
-    
-    this.server.to(roomName).emit('userLeft', { userId });
   }
 
   notifyTeamCreated(teamData: any) {
-    console.log(`🏗️ notifyTeamCreated 호출됨`);
-    console.log(`📋 teamData:`, teamData);
+    console.log(`notifyTeamCreated 호출`);
+    console.log(`teamData:`, teamData);
 
     this.server.sockets.emit('teamCreated', {
       id: teamData.id,
@@ -284,5 +293,12 @@ export class WaitingRoomGateway
       status: teamData.status || 'waiting',
     });
     console.log(` teamCreated 이벤트 전송 완료`);
+  }
+
+  notifyTeamDeleted(teamId: number) {
+    console.log(`notifyTeamDeleted 호출  팀 ID: ${teamId}`);
+    this.server.sockets.emit('teamDeleted', { teamId });
+    this.readyUsersMap.delete(teamId);
+    console.log(`teamDeleted 이벤트 전송 완료`);
   }
 }
