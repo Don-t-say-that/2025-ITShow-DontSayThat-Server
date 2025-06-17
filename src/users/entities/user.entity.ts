@@ -34,7 +34,7 @@ export class User {
   @Column({ nullable: true })
   teamId?: number;
 
-  @OneToOne(() => Character, (character) => character.user, {
+  @ManyToOne(() => Character, (character) => character.user, {
     nullable: false,
     onDelete: 'CASCADE',
   })

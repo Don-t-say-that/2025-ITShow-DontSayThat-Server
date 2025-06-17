@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { User } from './user.entity';
 
 @Entity()
@@ -9,6 +9,6 @@ export class Character {
   @Column()
   image: string;
 
-  @OneToOne(() => User, (user) => user.character) // 역방향 (비소유)
-  user?: User;
+  @OneToMany(() => User, (user) => user.character) // 역방향 (비소유)
+  user?: User[];
 }

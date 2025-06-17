@@ -18,6 +18,9 @@ export class Team {
   @Column({ nullable: true })
   name?: string;
 
+  @Column({ nullable: true })
+  backgroundImage?: string;
+
   @OneToOne(() => User, { eager: true })
   @JoinColumn({ name: 'leaderId' })
   leader: User;

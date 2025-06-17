@@ -10,9 +10,17 @@ import {
 import { Socket, Server } from 'socket.io';
 import { UsersService } from 'src/users/users.service';
 
+interface CustomSocket extends Socket {
+  data: {
+    roomName?: string;
+  };
+}
+
 @WebSocketGateway({ cors: { origin: '*' } })
-export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  constructor(private readonly usersService: UsersService) { }
+export class WaitingRoomGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
+  constructor(private readonly usersService: UsersService) {}
 
   @WebSocketServer()
   server: Server;
@@ -71,7 +79,7 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(
     @MessageBody() data: { teamId: number; userId?: number },
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: CustomSocket,
   ) {
     const roomName = `room-${data.teamId}`;
     client.join(roomName);
@@ -125,15 +133,23 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
 
   @SubscribeMessage('characterSelected')
   handleCharacterSelected(
-    @MessageBody() data: { teamId: number; userId: number; characterId: number; character: string },
+    @MessageBody()
+    data: {
+      teamId: number;
+      userId: number;
+      characterId: number;
+      character: string;
+    },
   ) {
     const roomName = `room-${data.teamId}`;
-    console.log(`캐릭터 선택: 사용자 ${data.userId} -> 캐릭터 ${data.characterId}`);
+    console.log(
+      `캐릭터 선택: 사용자 ${data.userId} -> 캐릭터 ${data.characterId}`,
+    );
 
     this.server.to(roomName).emit('characterSelected', {
       userId: data.userId,
       characterId: data.characterId,
-      character: data.character
+      character: data.character,
     });
   }
 
@@ -168,7 +184,10 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
     console.log(`userJoined 이벤트 전송 완료`);
   }
 
-  notifyCharacterSelected(teamId: number, data: { userId: number; characterId: number; character: string }) {
+  notifyCharacterSelected(
+    teamId: number,
+    data: { userId: number; characterId: number; character: string },
+  ) {
     const roomName = `room-${teamId}`;
     console.log(`캐릭터 선택 알림: ${roomName}`, data);
     this.server.to(roomName).emit('characterSelected', data);
@@ -191,7 +210,7 @@ export class WaitingRoomGateway implements OnGatewayConnection, OnGatewayDisconn
       leaderId: teamData.leader?.id,
       leaderName: teamData.leader?.name,
       userCount: 1,
-      status: teamData.status || 'waiting'
+      status: teamData.status || 'waiting',
     });
     console.log(` teamCreated 이벤트 전송 완료`);
   }
