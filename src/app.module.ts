@@ -6,6 +6,7 @@ import { TeamsModule } from './teams/teams.module';
 import { ChatModule } from './chat/chat.module';
 import { RoomModule } from './room/room.module';
 import { CharacterGateway } from './character/character.gateway';
+import { ChatGateway } from './chat/chat.gateway';
 
 @Module({
   imports: [
