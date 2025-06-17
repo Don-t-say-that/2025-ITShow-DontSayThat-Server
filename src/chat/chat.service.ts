@@ -54,13 +54,13 @@ export class ChatService {
     });
 
     if (existing) {
-      existing.score += scoreStandard;
+      existing.score = Math.max(0, existing.score + scoreStandard);
       await this.gameResultRepo.save(existing);
     } else {
       await this.gameResultRepo.save({
         user: { id: addChatDto.userId },
         team: { id: addChatDto.teamId },
-        score: scoreStandard,
+        score: Math.max(0, scoreStandard),
       });
     }
 
