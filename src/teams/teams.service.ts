@@ -93,7 +93,19 @@ export class TeamsService {
       backgroundImage: team.backgroundImage ?? '',
     };
   }
+  async gameFinished(teamId: number): Promise<Team> {
+    const team = await this.teamRepository.findOne({
+      where: { id: teamId },
+    });
 
+    if (!team) {
+      throw new NotFoundException('해당 팀을 찾을 수 없습니다.');
+    }
+
+    team.status = 'finished';
+    return await this.teamRepository.save(team);
+  }
+  
   async getRankingByTeam(teamId: number): Promise<any[]> {
     const results = await this.gameRankingRepository.find({
       where: {
