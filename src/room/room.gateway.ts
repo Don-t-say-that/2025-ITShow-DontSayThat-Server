@@ -275,7 +275,7 @@ export class WaitingRoomGateway
     console.log(`🏗️ notifyTeamCreated 호출됨`);
     console.log(`📋 teamData:`, teamData);
 
-    this.server.emit('teamCreated', {
+    this.server.sockets.emit('teamCreated', {
       id: teamData.id,
       name: teamData.name,
       leaderId: teamData.leader?.id,
