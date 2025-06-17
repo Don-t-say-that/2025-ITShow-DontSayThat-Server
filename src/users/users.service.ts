@@ -21,7 +21,7 @@ export class UsersService {
 
     @InjectRepository(Character)
     private readonly characterRepository: Repository<Character>,
-  ) {}
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const { name, password } = createUserDto;
@@ -29,17 +29,20 @@ export class UsersService {
     const existingUser = await this.userRepository.findOne({ where: { name } });
 
     if (existingUser) {
-      throw new BadRequestException('중복된 사용자입니다.');
+      const isPasswordCorrect = await bcrypt.compare(password, existingUser.password);
+      if (!isPasswordCorrect) {
+        throw new BadRequestException('중복된 사용자입니다. 새로운 닉네임을 입력해주세요.');
+      }
+      return existingUser;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = this.userRepository.create({
+    const newUser = this.userRepository.create({
       name,
       password: hashedPassword,
     });
 
-    return this.userRepository.save(user);
+    return this.userRepository.save(newUser);
   }
 
   async joinTeam(userId: number, teamId: number): Promise<User> {
