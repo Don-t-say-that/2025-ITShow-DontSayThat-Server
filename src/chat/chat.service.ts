@@ -34,9 +34,6 @@ export class ChatService {
     // 금칙어이면 -600, 아니면 +100
     const scoreStandard = containsForbidden ? -600 : 100;
 
-    console.log(
-      `[채팅] 유저 ${addChatDto.userId} 내용: ${addChatDto.content} / 금칙어 포함 여부: ${containsForbidden}`,
-    );
 
     // 메시지 저장
     const savedMessage = await this.chatRepo.save({

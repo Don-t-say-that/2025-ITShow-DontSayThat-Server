@@ -58,7 +58,6 @@ export class UsersService {
 
     user.team = team;
     const savedUser = await this.userRepository.save(user);
-    console.log(`팀 참여 `, savedUser);
 
     return savedUser;
   }

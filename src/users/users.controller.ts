@@ -20,7 +20,6 @@ export class UsersController {
     @Param('id') id: number,
     @Body('teamId') teamId: number,
   ) {
-    console.log('팀 ID:', teamId);
 
     const savedUser = await this.usersService.joinTeam(id, teamId);
 
@@ -35,7 +34,6 @@ export class UsersController {
 
     try {
       this.waitingRoomGateway.notifyUserJoined(teamId, userData);
-      console.log(`소켓 발생 성공`);
     } catch (error) {
       console.error(`소켓 발생 실패`, error);
     }

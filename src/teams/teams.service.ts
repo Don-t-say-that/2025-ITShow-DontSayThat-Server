@@ -62,7 +62,6 @@ export class TeamsService {
 
     try {
       this.waitingRoomGateway.notifyTeamCreated(savedTeam);
-      console.log(`팀 생성 소켓 성공`);
     } catch (error) {
       console.error(`팀 생성 소켓 실패:`, error);
     }
@@ -188,8 +187,6 @@ export class TeamsService {
       if (team && team.leaderId !== userId) {
         try {
           this.waitingRoomGateway.notifyUserLeft(teamId, userId);
-          console.log(`사용자 퇴장 소켓 성공`);
-
           await new Promise(resolve => setTimeout(resolve, 100));   // 소켓 전송 시간 
 
         } catch (error) {
@@ -200,13 +197,10 @@ export class TeamsService {
       else if (team && team.leaderId === userId) {
         try {
           this.waitingRoomGateway.notifyUserLeft(teamId, userId);
-          console.log(`리더 퇴장 소켓 성공`);
           await new Promise(resolve => setTimeout(resolve, 200));
           await this.teamRepository.remove(team);
 
           this.waitingRoomGateway.notifyTeamDeleted(teamId);
-          console.log(`팀 삭제 소켓 성공`);
-
         } catch (error) {
           console.error(`팀 삭제 소켓 실패:`, error);
         }
