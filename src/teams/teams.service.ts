@@ -98,6 +98,10 @@ export class TeamsService {
       where: { id: teamId },
     });
 
+    if (team?.status === 'finished') {
+      throw new BadRequestException('해당 팀은 이미 완료되었습니다.');
+    }
+
     if (!team) {
       throw new NotFoundException('해당 팀을 찾을 수 없습니다.');
     }
@@ -175,7 +179,7 @@ export class TeamsService {
     });
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     if (user.teamId) {
@@ -187,17 +191,14 @@ export class TeamsService {
       if (team && team.leaderId !== userId) {
         try {
           this.waitingRoomGateway.notifyUserLeft(teamId, userId);
-          await new Promise(resolve => setTimeout(resolve, 100));   // 소켓 전송 시간 
-
+          await new Promise((resolve) => setTimeout(resolve, 100)); // 소켓 전송 시간
         } catch (error) {
           console.error(`사용자 퇴장 소켓 실패:`, error);
         }
-      }
-
-      else if (team && team.leaderId === userId) {
+      } else if (team && team.leaderId === userId) {
         try {
           this.waitingRoomGateway.notifyUserLeft(teamId, userId);
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
           await this.teamRepository.remove(team);
 
           this.waitingRoomGateway.notifyTeamDeleted(teamId);

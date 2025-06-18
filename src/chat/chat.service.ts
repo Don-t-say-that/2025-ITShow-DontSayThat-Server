@@ -18,6 +18,8 @@ export class ChatService {
 
   // 금칙어 판별
   async checkForbiddenWord(addChatDto: AddChatDto) {
+    console.log(`[chat] user ${addChatDto.userId} - "${addChatDto.content}"`);
+
     // teamId 중에서 자신의 userId가 가진 금칙어 제외하고 선별
     const forbiddenWords = await this.forbiddenWordRepo.find({
       where: {

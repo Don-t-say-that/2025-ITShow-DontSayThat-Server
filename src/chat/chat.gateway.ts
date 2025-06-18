@@ -51,16 +51,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return; // 이미 타이머 실행 중이면 무시
     }
 
-    let seconds = 90; // 1분 30초
+    let seconds = 90;
 
     const interval = setInterval(() => {
       if (seconds <= 0) {
         clearInterval(interval);
-        client.to(roomName).emit('gameEnd');
+        this.gameTimers.delete(data.teamId);
+        this.server.to(roomName).emit('gameEnd');
         return;
       }
-      client.to(roomName).emit('timer', seconds);
+      this.server.to(roomName).emit('timer', seconds);
       seconds--;
     }, 1000);
+
+    this.gameTimers.set(data.teamId, interval);
   }
 }
