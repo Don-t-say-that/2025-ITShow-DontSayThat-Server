@@ -14,6 +14,7 @@ import { AddChatDto } from './dto/addChat.dto';
 const allowedOrigins = [
   'http://localhost:5173',
   'https://2025-it-show-dont-say-that-client.vercel.app',
+  'https://dontsaythat.mirim-it-show.site',
 ];
 
 @WebSocketGateway({
