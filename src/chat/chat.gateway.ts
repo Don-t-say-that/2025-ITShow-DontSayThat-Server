@@ -5,15 +5,20 @@ import {
   OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
-import { Socket } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { AddChatDto } from './dto/addChat.dto';
 
 // origin 변경하기
 @WebSocketGateway({ cors: { origin: '*' } })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer()
+  server: Server;
+
   constructor(private readonly chatService: ChatService) {}
+  private gameTimers = new Map<number, NodeJS.Timeout>();
 
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected to chat: ${client.id}`);
@@ -26,16 +31,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleChat(
     @MessageBody()
     addChatDto: AddChatDto,
-    @ConnectedSocket() client: Socket,
   ) {
     const saved = await this.chatService.checkForbiddenWord(addChatDto);
-
     const roomName = `room-${addChatDto.teamId}`;
-    client.to(roomName).emit('chat', saved);
+
+    this.server.to(roomName).emit('chat', saved);
+
     return saved;
   }
-
-  private gameTimers = new Map<number, NodeJS.Timeout>();
 
   @SubscribeMessage('startGameTimer')
   handleStartGameTimer(
