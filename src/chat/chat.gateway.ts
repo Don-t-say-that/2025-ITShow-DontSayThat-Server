@@ -11,8 +11,18 @@ import { ChatService } from './chat.service';
 import { Server, Socket } from 'socket.io';
 import { AddChatDto } from './dto/addChat.dto';
 
-// origin 변경하기
-@WebSocketGateway({ cors: { origin: '*' } })
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://2025-it-show-dont-say-that-client.vercel.app',
+];
+
+@WebSocketGateway({
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+  },
+})
+
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;

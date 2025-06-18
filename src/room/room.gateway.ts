@@ -16,7 +16,18 @@ interface CustomSocket extends Socket {
   };
 }
 
-@WebSocketGateway({ cors: { origin: '*' } })
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://2025-it-show-dont-say-that-client.vercel.app',
+];
+
+@WebSocketGateway({
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+  },
+})
+
 export class WaitingRoomGateway
   implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(private readonly usersService: UsersService) { }
