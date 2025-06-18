@@ -4,14 +4,16 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // CORS 허용 react에서 실행될 수 있게 
-  app.enableCors({
-  origin: [
+  const allowedOrigins = [
     'http://localhost:5173',
     'https://2025-it-show-dont-say-that-client.vercel.app',
-  ],
-  credentials: true,
-});
+    'https://dontsaythat.mirim-it-show.site',
+  ];
+
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+  });
 
 
   await app.listen(3000);
