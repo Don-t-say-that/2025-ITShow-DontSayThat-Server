@@ -9,6 +9,6 @@ async function bootstrap() {
     origin: 'http://localhost:5173',
   });
 
-  await app.listen(4000);
+  await app.listen(3000);
 }
 bootstrap();
