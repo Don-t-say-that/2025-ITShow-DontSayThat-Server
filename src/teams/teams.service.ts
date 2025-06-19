@@ -99,7 +99,8 @@ export class TeamsService {
     });
 
     if (team?.status === 'finished') {
-      throw new BadRequestException('해당 팀은 이미 완료되었습니다.');
+      console.log('해당 팀은 이미 완료되었습니다.');
+      return team;
     }
 
     if (!team) {
